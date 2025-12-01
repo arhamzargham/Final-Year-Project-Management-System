@@ -127,39 +127,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-  };
-
-  const renderDashboard = () => {
-    switch (currentView) {
-      case 'student':
-        return <StudentDashboard />;
-      case 'supervisor':
-        return <SupervisorDashboard />;
-      case 'coordinator':
-        return <CoordinatorDashboard />;
-      case 'hod':
-        return <HODDashboard />;
-      case 'evaluator':
-        return <EvaluatorDashboard />;
-      default:
-        return <StudentDashboard />;
-    }
-  };
-
-  return (
-    <div className="flex h-screen bg-[#F4F5F7]">
-      <Sidebar 
-        currentView={currentView} 
-        onViewChange={setCurrentView}
-        userRole={userRole}
-        onLogout={handleLogout}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header title={getHeaderTitle()} username={username} />
-        <main className="flex-1 overflow-auto">
-          {renderDashboard()}
-        </main>
-      </div>
-    </div>
-  );
-}

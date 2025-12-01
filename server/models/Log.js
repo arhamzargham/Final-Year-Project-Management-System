@@ -65,10 +65,10 @@ logSchema.index({ projectId: 1, logNumber: 1 }, { unique: true });
 logSchema.index({ projectId: 1, status: 1 });
 
 // Method to generate digital signature (FR-2.7)
-logSchema.methods.generateSignature = function (supervisorId) {
+logSchema.methods.generateSignature = async function (supervisorId) {
   const crypto = await import('crypto');
   const data = `${this._id}-${this.logNumber}-${Date.now()}-${supervisorId}`;
-  return crypto.createHash('sha256').update(data).digest('hex');
+  return crypto.default.createHash('sha256').update(data).digest('hex');
 };
 
 // Method to sign log (UC-11)

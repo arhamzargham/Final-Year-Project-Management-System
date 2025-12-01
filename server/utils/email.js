@@ -5,7 +5,7 @@ let transporter;
 
 if (process.env.NODE_ENV === 'production') {
   // Use SendGrid or Mailgun in production
-  transporter = nodemailer.createTransporter({
+  transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
     secure: true,
@@ -16,7 +16,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 } else {
   // Use Gmail or local SMTP for development
-  transporter = nodemailer.createTransporter({
+  transporter = nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
