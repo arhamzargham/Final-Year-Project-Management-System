@@ -1,45 +1,41 @@
 import { useState } from 'react';
 import { User, Lock, LogIn, GraduationCap, Shield } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-interface LoginPageProps {
-  onLogin: (role: string, username: string) => void;
-}
-
-type UserRole = 'Student' | 'Supervisor' | 'Coordinator' | 'HOD' | 'Evaluator';
-
-export function LoginPage({ onLogin }: LoginPageProps) {
-  const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
-  const [username, setUsername] = useState('');
+export function LoginPage() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const roles: { value: UserRole; label: string }[] = [
-    { value: 'Student', label: 'Student - Project Management' },
-    { value: 'Supervisor', label: 'Supervisor - Faculty Portal' },
-    { value: 'Coordinator', label: 'Coordinator - Administration' },
-    { value: 'HOD', label: 'Head of Department - Executive' },
-    { value: 'Evaluator', label: 'External Evaluator - Grading' },
-  ];
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
-    if (!selectedRole) {
-      setError('Please select your role');
-      return;
-    }
-    
-    if (!username || !password) {
-      setError('Please enter your username and password');
+    if (!email || !password) {
+      setError('Please enter your email and password');
       return;
     }
 
-    // Simple validation - in production, this would connect to a backend
-    if (password.length >= 4) {
-      onLogin(selectedRole, username);
-    } else {
-      setError('Invalid credentials. Please try again.');
+    setLoading(true);
+
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.message || 'Login failed. Please try again.');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,7 +62,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <Shield size={40} className="text-[#1F3B73]" />
           </div>
           <h1 className="text-3xl text-white mb-2">Bahria University</h1>
-          <p className="text-lg text-blue-100">FYP Governance Engine</p>
+          <p className="text-lg text-blue-100">FYP Management System</p>
           <div className="w-16 h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent mx-auto mt-3"></div>
         </div>
 
@@ -80,24 +76,118 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-8 space-y-5">
-            {/* Role Selection */}
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            {/* Email Input */}
             <div>
               <label className="block text-sm text-gray-700 mb-2 flex items-center gap-2">
-                <GraduationCap size={16} className="text-[#1F3B73]" />
-                Select Your Role
+                <User size={16} className="text-[#1F3B73]" />
+                University Email
                 <span className="text-red-500">*</span>
               </label>
-              <select
-                value={selectedRole}
+              <input
+                type="email"
+                value={email}
                 onChange={(e) => {
-                  setSelectedRole(e.target.value as UserRole);
+                  setEmail(e.target.value);
                   setError('');
                 }}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F3B73] focus:border-transparent transition-all text-sm bg-white"
+                placeholder="your.email@bu.edu.pk"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F3B73] focus:border-transparent transition-all text-sm"
+                required
+              />
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label className="block text-sm text-gray-700 mb-2 flex items-center gap-2">
+                <Lock size={16} className="text-[#1F3B73]" />
+                Password
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                }}
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F3B73] focus:border-transparent transition-all text-sm"
+                required
+              />
+            </div>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-[#1F3B73] border-gray-300 rounded focus:ring-2 focus:ring-[#1F3B73]"
+                />
+                <span className="text-gray-700 group-hover:text-[#1F3B73] transition-colors">
+                  Remember me
+                </span>
+              </label>
+              <a
+                href="/forgot-password"
+                className="text-[#1F3B73] hover:text-[#2a4d8f] transition-colors font-medium"
               >
-                <option value="">-- Choose your role --</option>
-                {roles.map((role) => (
-                  <option key={role.value} value={role.value}>
+                Forgot password?
+              </a>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#1F3B73] to-[#2a4d8f] text-white py-3.5 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn size={20} />
+                  Sign In
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="px-8 py-4 bg-gray-50 border-t border-gray-200">
+            <p className="text-center text-sm text-gray-600">
+              Don't have an account?{' '}
+              <a
+                href="/register"
+                className="text-[#1F3B73] hover:text-[#2a4d8f] font-medium transition-colors"
+              >
+                Register here
+              </a>
+            </p>
+          </div>
+        </div>
+
+        {/* Additional Info */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-blue-100">
+            &copy; 2025 Bahria University. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
                     {role.label}
                   </option>
                 ))}

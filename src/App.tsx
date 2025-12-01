@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { StudentDashboard } from './components/student/StudentDashboard';
@@ -7,34 +8,49 @@ import { CoordinatorDashboard } from './components/coordinator/CoordinatorDashbo
 import { HODDashboard } from './components/hod/HODDashboard';
 import { EvaluatorDashboard } from './components/evaluator/EvaluatorDashboard';
 import { LoginPage } from './components/LoginPage';
+import { useState } from 'react';
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [username, setUsername] = useState<string>('');
-  const [currentView, setCurrentView] = useState('student');
+// Protected Route Component
+function ProtectedRoute({ children, allowedRoles }) {
+  const { isAuthenticated, user, loading } = useAuth();
 
-  const handleLogin = (role: string, user: string) => {
-    setUserRole(role.toLowerCase());
-    setUsername(user);
-    setCurrentView(role.toLowerCase());
-    setIsAuthenticated(true);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#1F3B73] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole(null);
-    setUsername('');
-    setCurrentView('student');
-  };
-
-  // If not authenticated, show login page
   if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+function AppContent() {
+  const { isAuthenticated, user } = useAuth();
+  const [currentView, setCurrentView] = useState('overview');
+
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
   const getHeaderTitle = () => {
-    switch (currentView) {
+    switch (user?.role) {
       case 'student':
         return 'My Project Hub';
       case 'supervisor':
@@ -48,6 +64,69 @@ export default function App() {
       default:
         return 'Dashboard';
     }
+  };
+
+  const getDashboardComponent = () => {
+    switch (user?.role) {
+      case 'student':
+        return <StudentDashboard />;
+      case 'supervisor':
+        return <SupervisorDashboard />;
+      case 'coordinator':
+        return <CoordinatorDashboard />;
+      case 'hod':
+        return <HODDashboard />;
+      case 'evaluator':
+        return <EvaluatorDashboard />;
+      default:
+        return <div>Unknown role</div>;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        userRole={user?.role || 'student'}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header title={getHeaderTitle()} username={user?.name || ''} />
+        <main className="flex-1 overflow-auto">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  {getDashboardComponent()}
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  {getDashboardComponent()}
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
   };
 
   const renderDashboard = () => {
